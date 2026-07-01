@@ -45,34 +45,21 @@ export default function App() {
     setError(null);
     setCurrentStep(1);
 
-    const startTime = Date.now();
-
-    // Progress animation timeline simulator
+    // Progress animation timeline simulator (runs faster, cleared instantly on success)
     let step = 1;
     const intervalId = setInterval(() => {
       if (step < 4) {
         step += 1;
         setCurrentStep(step);
-      } else {
-        clearInterval(intervalId);
       }
-    }, 1200);
+    }, 600);
 
     try {
-      const data = await verifyNews(query);
-      
-      // Ensure smooth progressive timeline transitions (at least 1.2s per step up to step 4)
-      const elapsedTime = Date.now() - startTime;
-      const minAnimationTime = 4.8 * 1000; // 4 steps * 1.2 seconds
-      const remainingTime = Math.max(0, minAnimationTime - elapsedTime);
-
-      setTimeout(() => {
-        clearInterval(intervalId);
-        setCurrentStep(5);
-        setPredictionResult(data);
-        setIsLoading(false);
-      }, remainingTime);
-
+      const data = await verifyNews(query, 0.6, 2, 10);
+      clearInterval(intervalId);
+      setCurrentStep(5);
+      setPredictionResult(data);
+      setIsLoading(false);
     } catch (err) {
       clearInterval(intervalId);
       setIsLoading(false);
@@ -80,7 +67,16 @@ export default function App() {
       
       let friendlyError = "Unable to connect to the AI verification service. Please try again later.";
       if (err.response) {
-        friendlyError = err.response.data?.detail || `API request failed with code ${err.response.status}.`;
+        const detail = err.response.data?.detail;
+        if (typeof detail === 'string') {
+          friendlyError = detail;
+        } else if (Array.isArray(detail)) {
+          friendlyError = detail.map(d => typeof d === 'object' ? d.msg : d).join(', ');
+        } else if (detail) {
+          friendlyError = JSON.stringify(detail);
+        } else {
+          friendlyError = `API request failed with code ${err.response.status}.`;
+        }
       } else if (err.code === 'ECONNABORTED') {
         friendlyError = "Request timed out. The AI analysis engine is taking longer than expected. Please try again.";
       } else if (err.message && err.message.toLowerCase().includes('network error')) {

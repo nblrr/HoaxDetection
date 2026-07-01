@@ -30,6 +30,29 @@ export default function KnowledgeGraphCard({ keywords = [], topReferences = [] }
     return { id: `ref-${index}`, label: ref.source, title: ref.title, x: refX, y, type: 'reference' };
   });
 
+  // Bipartite connections between keywords and references based on matched_kws
+  const connections = [];
+  referenceNodes.forEach((refNode, refIdx) => {
+    const refData = activeReferences[refIdx];
+    if (refData && refData.matched_kws) {
+      refData.matched_kws.forEach((kw) => {
+        // Find matching keyword node
+        const kwNode = keywordNodes.find(n => n.label.toLowerCase() === kw.toLowerCase());
+        if (kwNode) {
+          connections.push({
+            id: `edge-${kwNode.id}-${refNode.id}`,
+            x1: kwNode.x,
+            y1: kwNode.y,
+            x2: refNode.x,
+            y2: refNode.y,
+            kwId: kwNode.id,
+            refId: refNode.id
+          });
+        }
+      });
+    }
+  });
+
   const handleMouseEnter = (nodeId) => {
     setHoveredNode(nodeId);
   };
@@ -52,37 +75,36 @@ export default function KnowledgeGraphCard({ keywords = [], topReferences = [] }
         
         {/* SVG Connections Layer */}
         <svg className="absolute inset-0 w-full h-full pointer-events-none">
-          {/* Keyword Connections (Left) */}
+          {/* Keyword Extraction Connections (Claim -> Keywords) */}
           {keywordNodes.map((node) => {
             const isHovered = hoveredNode === node.id || hoveredNode === 'center';
             return (
               <line
-                key={node.id}
-                x1={`${node.x}%`}
-                y1={`${node.y}%`}
-                x2={`${centerX}%`}
-                y2={`${centerY}%`}
+                key={`extract-${node.id}`}
+                x1={`${centerX}%`}
+                y1={`${centerY}%`}
+                x2={`${node.x}%`}
+                y2={`${node.y}%`}
                 stroke={isHovered ? '#bbc3ff' : 'rgba(255, 255, 255, 0.15)'}
                 strokeWidth={isHovered ? 2 : 1}
-                strokeDasharray={node.type === 'keyword' ? '4 3' : 'none'}
+                strokeDasharray="4 3"
                 className="transition-all duration-300"
               />
             );
           })}
 
-          {/* Reference Connections (Right) */}
-          {referenceNodes.map((node) => {
-            const isHovered = hoveredNode === node.id || hoveredNode === 'center';
+          {/* Actual Bipartite Graph Edges (Keywords -> References) */}
+          {connections.map((edge) => {
+            const isHovered = hoveredNode === edge.kwId || hoveredNode === edge.refId || hoveredNode === 'center';
             return (
               <line
-                key={node.id}
-                x1={`${centerX}%`}
-                y1={`${centerY}%`}
-                x2={`${node.x}%`}
-                y2={`${node.y}%`}
-                stroke={isHovered ? '#34d399' : 'rgba(187, 195, 255, 0.15)'}
+                key={edge.id}
+                x1={`${edge.x1}%`}
+                y1={`${edge.y1}%`}
+                x2={`${edge.x2}%`}
+                y2={`${edge.y2}%`}
+                stroke={isHovered ? '#34d399' : 'rgba(187, 195, 255, 0.1)'}
                 strokeWidth={isHovered ? 2 : 1}
-                strokeDasharray="none"
                 className="transition-all duration-300"
               />
             );

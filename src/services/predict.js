@@ -7,7 +7,7 @@ import api from './api';
  * @param {number} maxDepth 
  * @param {number} topK 
  */
-export const verifyNews = async (query, threshold = 0.45, maxDepth = 2, topK = 5) => {
+export const verifyNews = async (query, threshold = 0.6, maxDepth = 2, topK = 10) => {
   const response = await api.post('/api/predict', {
     query,
     similarity_threshold: threshold,
